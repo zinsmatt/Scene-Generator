@@ -13,28 +13,12 @@ def get_calibration_matrix_K_from_blender(cam):
     scale = scene.render.resolution_percentage / 100
     sensor_width_in_mm = camd.sensor_width
     sensor_height_in_mm = camd.sensor_height
-    pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
-    if (camd.sensor_fit == 'VERTICAL'):
-        # the sensor height is fixed (sensor fit is horizontal), 
-        # the sensor width is effectively changed with the pixel aspect ratio
-        print("VERTICAL")
-        s_u = resolution_x_in_px * scale / sensor_width_in_mm / pixel_aspect_ratio 
-        s_v = resolution_y_in_px * scale / sensor_height_in_mm
-    else: # 'HORIZONTAL' and 'AUTO'
-        print("NOT VERTICAL")
-        # the sensor width is fixed (sensor fit is horizontal), 
-        # the sensor height is effectively changed with the pixel aspect ratio
-        pixel_aspect_ratio = scene.render.pixel_aspect_x / scene.render.pixel_aspect_y
-        s_u = resolution_x_in_px * scale / sensor_width_in_mm
-        s_v = resolution_y_in_px * scale * pixel_aspect_ratio / sensor_height_in_mm
-
-    # Parameters of intrinsic calibration matrix K
-
+    s_u = resolution_x_in_px * scale / sensor_width_in_mm 
+    s_v = resolution_y_in_px * scale / sensor_height_in_mm
     fx = f_in_mm * s_u
     fy = f_in_mm * s_u
     ppx = resolution_x_in_px*scale / 2
     ppy = resolution_y_in_px*scale / 2
-
     K = np.array([[fx, 0.0, ppx],
                   [0.0, fy, ppy],
                   [0.0, 0.0, 1.0]])
@@ -95,11 +79,11 @@ table = load_mesh("/home/matt/dev/Scene-Generator/data/table/table.obj")
 mug = load_mesh("/home/matt/dev/Scene-Generator/data/objects/mug.obj")
 banana = load_mesh("/home/matt/dev/Scene-Generator/data/objects/banana.obj")
 scissors = load_mesh("/home/matt/dev/Scene-Generator/data/objects/scissors.obj")
-
+cracker = load_mesh ("/home/matt/dev/Learning_Uncertainties/ellipse_from_object/data/cad_models/cracker_box/textured.obj")
 # cube = load_mesh("/home/matt/dev/Scene-Generator/data/objects/cube.obj")
 # dode = load_mesh("/home/matt/dev/Scene-Generator/data/objects/dodecahedron.obj")
 
-objects = [mug, banana, scissors]
+objects = [mug, banana, scissors, cracker]
 
 bbox_mug = get_bbox(mug)
 mug.location.z -= bbox_mug[2]
@@ -117,7 +101,8 @@ scissors.location.z -= bbox_scissors[2]
 scissors.location.x -= 0.2
 scissors.location.y -= 0.5
 
-
+bbox_cracker = get_bbox(cracker)
+cracker.location.z -= bbox_cracker[2]
 
 
 def parent_obj_to_camera(b_camera):
@@ -146,7 +131,9 @@ cam_constraint.target = b_empty
 light = scene.objects["Light"]
 light.location.x = 1.5
 light.location.y = 0.5
-light.location.z = 9
+light.location.z = 3.2960827350616455
+light.data.energy = 500.0
+light.data.specular_factor = 0.5
 
 
 angles = np.linspace(0, 360, 50)
@@ -177,6 +164,7 @@ bpy.context.scene.cycles.device = "GPU"
 bpy.context.scene.cycles.feature_set = "SUPPORTED"
 bpy.context.preferences.addons['cycles'].preferences.devices[0].use = True
 
+bpy.context.scene.render.engine = "BLENDER_EEVEE"
 
 scene = bpy.context.scene
 scene.render.resolution_x = WIDTH
@@ -200,10 +188,20 @@ all_pts_world_h = np.vstack(all_pts_world_h).T
 
 import time
 a = time.time()
-for i in range(cam_positions.shape[0]):
-    cam.location.x = cam_positions[i, 0]
-    cam.location.y = cam_positions[i, 1]
-    cam.location.z = cam_positions[i, 2]
+for i in range(10):
+    # cam.location.x = cam_positions[i, 0]
+    # cam.location.y = cam_positions[i, 1]
+    # cam.location.z = cam_positions[i, 2]
+
+    az = np.deg2rad(np.random.randint(0, 360))
+    elev = np.deg2rad(np.random.randint(10, 80))
+    cam.location.x = d * np.cos(az) * np.cos(elev)
+    cam.location.y = d * np.sin(az) * np.cos(elev)
+    cam.location.z = d * np.sin(elev)
+
+    b_empty.location.x = np.random.rand() - 0.5
+    b_empty.location.y = np.random.rand() - 0.5
+
     bpy.context.view_layer.update()
     bpy.context.scene.render.filepath = os.path.join(fp, 'rendering_%03d.png' % i)
     bpy.ops.render.render(write_still=True)
@@ -225,9 +223,9 @@ for i in range(cam_positions.shape[0]):
     uvs[0, :] = np.clip(uvs[0, :], 0, WIDTH-1)
     uvs[1, :] = np.clip(uvs[1, :], 0, HEIGHT-1)
 
-    # img = np.zeros((HEIGHT, WIDTH), np.uint8)
-    # img[uvs[1, :], uvs[0, :]] = 255
-    # cv2.imwrite(os.path.join(fp, "rendering_%03d_mask.png" % i), img)
+    img = np.zeros((HEIGHT, WIDTH), np.uint8)
+    img[uvs[1, :], uvs[0, :]] = 255
+    cv2.imwrite(os.path.join(fp, "rendering_%03d_mask.png" % i), img)
 
     # bg = cv2.imread(os.path.join(fp, 'rendering_%03d.png' % i)).astype(float)
     # fg = np.dstack([img.astype(float)]*3)
