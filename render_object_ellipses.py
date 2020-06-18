@@ -98,7 +98,7 @@ USE_IMAGE_AS_BACKGROUND = False
 BACKGROUND_COLOR = (0.0, 1.0, 0.0)
 
 # output_folder = "data"
-output_folder = "/media/matt/4eb435a5-0096-4404-9393-8d75ca083559/matthieu/ellipse_from_object_data/blender/mug_ellipse_half"
+output_folder = "/media/matt/4eb435a5-0096-4404-9393-8d75ca083559/matthieu/ellipse_from_object_data/blender/cracker_ellipse_half"
 
 DO_CROP = True
 USE_SPHERE_HOMOGENEOUS_CAM_POSITIONS = False

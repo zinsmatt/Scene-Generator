@@ -164,7 +164,6 @@ bpy.context.scene.cycles.device = "GPU"
 bpy.context.scene.cycles.feature_set = "SUPPORTED"
 bpy.context.preferences.addons['cycles'].preferences.devices[0].use = True
 
-bpy.context.scene.render.engine = "BLENDER_EEVEE"
 
 scene = bpy.context.scene
 scene.render.resolution_x = WIDTH
@@ -188,19 +187,20 @@ all_pts_world_h = np.vstack(all_pts_world_h).T
 
 import time
 a = time.time()
-for i in range(10):
+for i in range(20):
     # cam.location.x = cam_positions[i, 0]
     # cam.location.y = cam_positions[i, 1]
     # cam.location.z = cam_positions[i, 2]
 
     az = np.deg2rad(np.random.randint(0, 360))
     elev = np.deg2rad(np.random.randint(10, 80))
+    d = 1.0
     cam.location.x = d * np.cos(az) * np.cos(elev)
     cam.location.y = d * np.sin(az) * np.cos(elev)
     cam.location.z = d * np.sin(elev)
 
-    b_empty.location.x = np.random.rand() - 0.5
-    b_empty.location.y = np.random.rand() - 0.5
+    b_empty.location.x = (np.random.rand() - 0.5) / 2
+    b_empty.location.y = (np.random.rand() - 0.5) / 2
 
     bpy.context.view_layer.update()
     bpy.context.scene.render.filepath = os.path.join(fp, 'rendering_%03d.png' % i)
@@ -225,7 +225,7 @@ for i in range(10):
 
     img = np.zeros((HEIGHT, WIDTH), np.uint8)
     img[uvs[1, :], uvs[0, :]] = 255
-    cv2.imwrite(os.path.join(fp, "rendering_%03d_mask.png" % i), img)
+    # cv2.imwrite(os.path.join(fp, "rendering_%03d_mask.png" % i), img)
 
     # bg = cv2.imread(os.path.join(fp, 'rendering_%03d.png' % i)).astype(float)
     # fg = np.dstack([img.astype(float)]*3)
