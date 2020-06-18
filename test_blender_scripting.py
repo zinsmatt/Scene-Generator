@@ -79,7 +79,7 @@ table = load_mesh("/home/matt/dev/Scene-Generator/data/table/table.obj")
 mug = load_mesh("/home/matt/dev/Scene-Generator/data/objects/mug.obj")
 banana = load_mesh("/home/matt/dev/Scene-Generator/data/objects/banana.obj")
 scissors = load_mesh("/home/matt/dev/Scene-Generator/data/objects/scissors.obj")
-cracker = load_mesh ("/home/matt/dev/Learning_Uncertainties/ellipse_from_object/data/cad_models/cracker_box/textured.obj")
+cracker = load_mesh ("/home/matt/dev/Scene-Generator/data/objects/cracker.obj")
 # cube = load_mesh("/home/matt/dev/Scene-Generator/data/objects/cube.obj")
 # dode = load_mesh("/home/matt/dev/Scene-Generator/data/objects/dodecahedron.obj")
 
