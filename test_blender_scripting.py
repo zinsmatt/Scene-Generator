@@ -154,7 +154,7 @@ with open("/home/matt/dev/Scene-Generator/camera_path.obj", "r") as fin:
 print(cam_positions)
 
 
-fp = "/home/matt/Downloads/animation_python"
+fp = "out/"
 
 # configure Cycles engine and use GPU
 bpy.context.scene.render.engine = "CYCLES"
