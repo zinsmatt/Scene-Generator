@@ -6,7 +6,7 @@
 
 
 import bpy
-from bpy_utils import * 
+from bpy_utils import *
 from mesh_io import read_obj
 import numpy as np
 import json
@@ -28,7 +28,7 @@ objects = []
 # objects.append(get_object("cracker"))
 for o in objects_names:
     objects.append(get_object(o))
-    
+
 
 WIDTH, HEIGHT = 1080, 768
 
@@ -39,22 +39,41 @@ scene.render.resolution_percentage = 100
 
 
 out_folder = "/home/mzins/dev/Scene-Generator/dataset"
-mode = "train"
-# mode = "test"
+# mode = "train"
+mode = "test_14"
 out_folder = os.path.join(out_folder, mode)
 create_if_needed(out_folder)
 
 file_out = os.path.join("annotations.json")
 
 if mode =="train":
-    trajectory_files = ["trajectories/traj_02.obj", "trajectories/traj_03.obj", "trajectories/traj_04.obj"]#, "trajectories/traj_05.obj", "trajectories/traj_06.obj"]
-else:
-    trajectory_files = ["trajectories/traj_04.obj"]
+    trajs = [2, 3, 4]
+elif mode =="test_far":
+    trajs = [5, 6]
+elif mode == "test_08":
+    trajs = [8]
+elif mode == "test_09":
+    trajs = [9, 10, 11]
+elif mode == "test_12":
+    trajs = [12]
+elif mode == "test_13":
+    trajs = [13]
+elif mode == "test_14":
+    trajs = [14]
+
+
+trajectory_files = ["trajectories/traj_%02d.obj" % d for d in trajs]
 traj_points = []
+points_per_traj = []
 for f in trajectory_files:
     pts, _ = read_obj(f)
-    traj_points.append(pts[::3, :])
+    sub_pts = pts[:, :]  # reduces_sampling
+    traj_points.append(sub_pts)
+    points_per_traj.append(sub_pts.shape[0])
 traj_points = np.vstack(traj_points)
+
+
+
 
 
 
@@ -103,6 +122,13 @@ scene.render.resolution_percentage = 100
 K = get_calibration_matrix_K_from_blender(cam)
 
 
+
+# WARNING the trajectories have been subsampled
+# + setting the camera location does not give the good camera pose ==> need to use cam pose to get the real position
+# (I do not why, may be the camera as an object is different from the real camera)
+real_positions = []
+
+
 import time
 a = time.time()
 
@@ -119,19 +145,22 @@ for i in range(traj_points.shape[0]):
 
     bpy.context.view_layer.update()
     bpy.context.scene.render.filepath = os.path.join(out_folder, 'rendering_%03d.png' % i)
-    bpy.ops.render.render(write_still=True)
-    
+    bpy.ops.render.render(write_still=True)  # for fast trajectory render
+
     img = cv2.imread(bpy.context.scene.render.filepath)
-    
+
     # transform points to cam
     cam_pose = get_object_pose(cam)
+
     correct = np.array([[1.0, 0.0, 0.0, 0.0],
                         [0.0, -1.0, 0.0, 0.0],
                         [0.0, 0.0, -1.0, 0.0],
                         [0.0, 0.0, 0.0, 1.0]])
-    cam_pose =  cam_pose @ correct
+    cam_pose = cam_pose @ correct
+    real_positions.append(cam_pose[:3, 3])
     T_to_cam = np.linalg.inv(cam_pose)
     # pts_cam_h = T_to_cam @ all_pts_world_h
+
 
     objects_cam_points = []
     objects_cam_dists = []
@@ -152,7 +181,7 @@ for i in range(traj_points.shape[0]):
         pts = objects_cam_points[oid]
         p_proj = K @ pts.T
         p_proj /= p_proj[2, :]
-    
+
         uvs = p_proj[:2, :]
         uvs = uvs.T
 
@@ -173,7 +202,7 @@ for i in range(traj_points.shape[0]):
             annot["bbox_mode"] = 0
             annot["category_id"] = cat
             detections.append(annot)
-        
+
         buffer[miny:maxy+1, minx:maxx+1] = 1
 
 
@@ -193,7 +222,7 @@ for i in range(traj_points.shape[0]):
 
     img_dict["annotations"] = detections
     data.append(img_dict)
-    
+
 
 print("data = ", data)
 with open(os.path.join(out_folder, "labels.json"), "w") as fout:
@@ -201,3 +230,14 @@ with open(os.path.join(out_folder, "labels.json"), "w") as fout:
 
 b = time.time()
 print("done in ", b-a)
+
+# save the real camera positions
+with open(os.path.join(out_folder, "subsampled_real_trajectory.obj"), "w") as fout:
+    for p in real_positions:
+        fout.write("v " + " ".join(map(str, p)) + "\n")
+    tot = 1
+    for t in points_per_traj:
+        for i in range(t-1):
+            fout.write("l %d %d\n" % (i+tot, i+tot+1))
+        tot += t
+
